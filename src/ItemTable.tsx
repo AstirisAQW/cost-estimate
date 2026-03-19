@@ -204,17 +204,7 @@ export function ItemTable({
 
                   {items.length === 0 && (
                     <tr>
-                      <td colSpan={12} className="px-4 py-5 text-center">
-                        <p className="text-xs text-zinc-400 italic">
-                          No items yet —{' '}
-                          <button
-                            onClick={() => onAddItemToSection(section.id)}
-                            className="text-emerald-600 font-bold hover:underline"
-                          >
-                            add one
-                          </button>
-                        </p>
-                      </td>
+                      <td colSpan={12} className="py-4" />
                     </tr>
                   )}
                 </tbody>
@@ -227,7 +217,7 @@ export function ItemTable({
                       colSpan={5}
                       className="px-3 py-3 text-right text-[10px] font-black text-zinc-400 uppercase tracking-wider"
                     >
-                      Section {toRoman(sIdx + 1)} — Cost Summary
+                      Subtotal — {toRoman(sIdx + 1)}
                     </td>
 
                     {/* Material total sum */}

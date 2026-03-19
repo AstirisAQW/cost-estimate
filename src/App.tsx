@@ -8,6 +8,7 @@ import { ProjectInfoEditor } from './ProjectInfoEditor';
 import { SectionsManager } from './SectionsManager';
 import { SectionFormModal } from './SectionFormModal';
 import { ItemFormModal } from './ItemFormModal';
+import { AddSectionItemModal } from './AddSectionItemModal';
 import { ProjectFormModal, NewProjectState } from './ProjectFormModal';
 
 import { useAppStorage } from './useLocalStorage';
@@ -15,7 +16,7 @@ import { Project, CostItem, CatalogItem, INITIAL_ITEM } from './index';
 
 const EMPTY_PROJECT: NewProjectState = {
   name: '',
-  subject: 'Estimate Items',
+  subject: '',
   location: { street: '', barangay: '', city: '', province: '', postalCode: '' },
   owner: '',
 };
@@ -29,7 +30,8 @@ export default function App() {
   } = useAppStorage();
 
   // ── UI state ──────────────────────────────────────────────
-  const [showManualForm,         setShowManualForm]         = useState(false);
+  const [showSectionItemForm,    setShowSectionItemForm]    = useState(false); // add/edit item in a section
+  const [showCatalogForm,        setShowCatalogForm]        = useState(false); // add/edit catalog entry
   const [showProjectForm,        setShowProjectForm]        = useState(false);
   const [showSectionForm,        setShowSectionForm]        = useState(false);
   const [showCatalog,            setShowCatalog]            = useState(false);
@@ -55,7 +57,7 @@ export default function App() {
     const project: Project = {
       id: Math.random().toString(36).substr(2, 9),
       name: newProject.name,
-      subject: newProject.subject || 'Estimate Items',
+      subject: newProject.subject || '',
       location: { ...newProject.location },
       owner: newProject.owner,
       date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
@@ -78,9 +80,7 @@ export default function App() {
   const deleteProject = (id: string) => {
     const updated = projects.filter((p) => p.id !== id);
     setProjects(updated);
-    if (activeProjectId === id) {
-      setActiveProjectId(updated[0]?.id ?? null);
-    }
+    if (activeProjectId === id) setActiveProjectId(updated[0]?.id ?? null);
     setConfirmDeleteProjectId(null);
   };
 
@@ -143,8 +143,8 @@ export default function App() {
     ));
   };
 
-  // ── Item CRUD ─────────────────────────────────────────────
-  const addItemToProject = () => {
+  // ── Section Item CRUD ─────────────────────────────────────
+  const addItemToSection = () => {
     if (!activeProjectId || !activeSectionId) return;
 
     if (editingItemId) {
@@ -173,7 +173,7 @@ export default function App() {
 
     setNewItem(INITIAL_ITEM);
     setEditingItemId(null);
-    setShowManualForm(false);
+    setShowSectionItemForm(false);
   };
 
   const editItem = (item: CostItem, sectionId: string) => {
@@ -181,7 +181,7 @@ export default function App() {
     setNewItem(rest);
     setEditingItemId(id);
     setActiveSectionId(sectionId);
-    setShowManualForm(true);
+    setShowSectionItemForm(true);
   };
 
   const removeItemFromProject = (itemId: string) => {
@@ -196,7 +196,18 @@ export default function App() {
     ));
   };
 
-  // ── Catalog ───────────────────────────────────────────────
+  // Load a catalog item into the section item form (pre-fills name/unit/unitCost, qty stays blank)
+  const loadFromCatalogToSection = (item: CatalogItem) => {
+    setNewItem({
+      ...INITIAL_ITEM,
+      description: item.description,
+      unit: item.unit,
+      unitCost: item.unitCost,
+      qty: 0,
+    });
+  };
+
+  // ── Catalog CRUD ──────────────────────────────────────────
   const saveToCatalog = () => {
     if (editingCatalogId) {
       setCatalog((prev) =>
@@ -220,29 +231,26 @@ export default function App() {
       };
       setCatalog([...catalog, catalogItem]);
     }
-  };
-
-  const loadFromCatalog = (item: CatalogItem) => {
-    setNewItem({
-      ...INITIAL_ITEM,
-      description: item.description,
-      unit: item.unit,
-      unitCost: item.unitCost,
-      qty: 0,
-    });
-    setShowManualForm(true);
+    setNewItem(INITIAL_ITEM);
     setEditingCatalogId(null);
+    setShowCatalogForm(false);
   };
 
   const handleEditCatalogItem = (item: CatalogItem) => {
-    loadFromCatalog(item);
+    setNewItem({ ...INITIAL_ITEM, description: item.description, unit: item.unit, unitCost: item.unitCost });
     setEditingCatalogId(item.id);
+    setShowCatalogForm(true);
   };
 
-  const closeItemForm = () => {
-    setShowManualForm(false);
-    setEditingItemId(null);
+  const closeCatalogForm = () => {
+    setShowCatalogForm(false);
     setEditingCatalogId(null);
+    setNewItem(INITIAL_ITEM);
+  };
+
+  const closeSectionItemForm = () => {
+    setShowSectionItemForm(false);
+    setEditingItemId(null);
     setNewItem(INITIAL_ITEM);
   };
 
@@ -269,10 +277,9 @@ export default function App() {
               catalogSearch={catalogSearch}
               onSearchChange={setCatalogSearch}
               onAddToCatalog={() => {
-                setEditingItemId(null);
                 setEditingCatalogId(null);
                 setNewItem(INITIAL_ITEM);
-                setShowManualForm(true);
+                setShowCatalogForm(true);
               }}
               onRemoveFromCatalog={(id) => setCatalog(catalog.filter((item) => item.id !== id))}
             />
@@ -290,7 +297,8 @@ export default function App() {
                 onRemoveItem={removeItemFromProject}
                 onAddItemToSection={(sectionId) => {
                   setActiveSectionId(sectionId);
-                  setShowManualForm(true);
+                  setNewItem(INITIAL_ITEM);
+                  setShowSectionItemForm(true);
                 }}
                 onUpdateSectionTitle={updateSectionTitle}
                 onUpdateSectionCosts={updateSectionCosts}
@@ -305,9 +313,6 @@ export default function App() {
                 <Folder className="w-8 h-8 text-zinc-400" />
               </div>
               <h3 className="text-xl font-bold text-zinc-900 mb-2">Select or Create a Project</h3>
-              <p className="text-zinc-500 max-w-sm mx-auto mb-8">
-                Use the sidebar to manage your engineering projects and estimates.
-              </p>
               <button
                 onClick={() => setShowProjectForm(true)}
                 className="flex items-center gap-2 bg-emerald-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-all"
@@ -329,8 +334,23 @@ export default function App() {
         onClose={() => setShowSectionForm(false)}
       />
 
+      {/* Add / edit item in a section */}
+      <AddSectionItemModal
+        show={showSectionItemForm}
+        newItem={newItem}
+        catalog={catalog}
+        catalogSearch={catalogSearch}
+        editingItemId={editingItemId}
+        onItemChange={setNewItem}
+        onCatalogSearchChange={setCatalogSearch}
+        onLoadFromCatalog={loadFromCatalogToSection}
+        onAddItem={addItemToSection}
+        onClose={closeSectionItemForm}
+      />
+
+      {/* Add / edit catalog entry */}
       <ItemFormModal
-        show={showManualForm}
+        show={showCatalogForm}
         newItem={newItem}
         catalog={catalog}
         catalogSearch={catalogSearch}
@@ -339,15 +359,18 @@ export default function App() {
         showCatalog={showCatalog}
         onItemChange={setNewItem}
         onCatalogSearchChange={setCatalogSearch}
-        onLoadFromCatalog={loadFromCatalog}
+        onLoadFromCatalog={(item) => {
+          setNewItem({ ...INITIAL_ITEM, description: item.description, unit: item.unit, unitCost: item.unitCost });
+          setEditingCatalogId(null);
+        }}
         onEditCatalogItem={handleEditCatalogItem}
         onDeleteCatalogItem={(id) => {
           setCatalog((prev) => prev.filter((i) => i.id !== id));
           if (editingCatalogId === id) setEditingCatalogId(null);
         }}
         onSaveToCatalog={saveToCatalog}
-        onAddItem={addItemToProject}
-        onClose={closeItemForm}
+        onAddItem={() => {}}
+        onClose={closeCatalogForm}
       />
 
       <ProjectFormModal
@@ -375,7 +398,7 @@ export default function App() {
                 </div>
               </div>
               <p className="text-xs text-zinc-400 mb-6 bg-zinc-50 rounded-xl px-4 py-3">
-                This action cannot be undone. All sections and estimate items in this project will be lost.
+                This action cannot be undone. All data in this project will be lost.
               </p>
               <div className="flex gap-3">
                 <button

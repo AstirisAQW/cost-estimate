@@ -29,7 +29,7 @@ export function Sidebar({
           <div className="bg-emerald-600 p-2 rounded-lg">
             <HardHat className="text-white w-5 h-5" />
           </div>
-          <h1 className="text-xl font-bold tracking-tight text-zinc-900">EngiTrack</h1>
+          <h1 className="text-xl font-bold tracking-tight text-zinc-900">Cost Estimate</h1>
         </div>
         <button
           onClick={onNewProject}

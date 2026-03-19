@@ -86,7 +86,7 @@ export function useAppStorage() {
           return {
             id:       p.id,
             name:     p.name,
-            subject:  p.subject  ?? 'Estimate Items',
+            subject:  p.subject  ?? '',
             location: p.location ?? { street: '', barangay: '', city: '', province: '', postalCode: '' },
             owner:    p.owner    ?? '',
             date:     p.date     ?? '',

@@ -29,7 +29,7 @@ export function CatalogView({
       <div className="flex items-center justify-between mb-8">
         <div>
           <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Master Catalog</h2>
-          <p className="text-zinc-500 text-sm">Save common items here to reuse them across all projects.</p>
+          <p className="text-zinc-500 text-sm">Save items here to reuse them across all projects.</p>
         </div>
         <div className="flex items-center gap-4">
           <div className="relative">

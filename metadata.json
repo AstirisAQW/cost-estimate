@@ -1,5 +1,5 @@
 {
-  "name": "EngiTrack: Project Cost Manager",
-  "description": "Manage engineering projects, track materials, and calculate costs with a simple manual entry system.",
+  "name": "Cost Estimate Manager",
+  "description": "Cost Estimate Manager for Engineering Projects",
   "requestFramePermissions": []
 }

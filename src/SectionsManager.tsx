@@ -59,15 +59,12 @@ export function SectionsManager({
           <Layout className="w-8 h-8 text-emerald-600" />
         </div>
         <h3 className="text-xl font-bold text-zinc-900 mb-2">No Sections Yet</h3>
-        <p className="text-zinc-500 max-w-sm mx-auto mb-8">
-          Create sections to organize your project estimate items.
-        </p>
         <button
           onClick={onAddSection}
           className="flex items-center gap-2 bg-emerald-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-all"
         >
           <Plus className="w-4 h-4" />
-          Create First Section
+          Create a Section
         </button>
       </div>
     );
