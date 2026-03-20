@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Plus, Book, Trash2 } from 'lucide-react';
+import { Search, Plus, Book, Trash2, Pencil } from 'lucide-react';
 import { CatalogItem } from './index';
 
 interface CatalogViewProps {
@@ -7,6 +7,7 @@ interface CatalogViewProps {
   catalogSearch: string;
   onSearchChange: (val: string) => void;
   onAddToCatalog: () => void;
+  onEditCatalogItem: (item: CatalogItem) => void;
   onRemoveFromCatalog: (id: string) => void;
 }
 
@@ -15,6 +16,7 @@ export function CatalogView({
   catalogSearch,
   onSearchChange,
   onAddToCatalog,
+  onEditCatalogItem,
   onRemoveFromCatalog,
 }: CatalogViewProps) {
   const filtered = catalog.filter(
@@ -29,7 +31,7 @@ export function CatalogView({
       <div className="flex items-center justify-between mb-8">
         <div>
           <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Master Catalog</h2>
-          <p className="text-zinc-500 text-sm">Save items here to reuse them across all projects.</p>
+          <p className="text-zinc-500 text-sm">Save common items here to reuse them across all projects.</p>
         </div>
         <div className="flex items-center gap-4">
           <div className="relative">
@@ -66,12 +68,23 @@ export function CatalogView({
                 </p>
                 <h4 className="font-bold text-zinc-900 text-sm leading-snug">{item.description}</h4>
               </div>
-              <button
-                onClick={() => onRemoveFromCatalog(item.id)}
-                className="text-zinc-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+              {/* Edit + Delete — visible on hover */}
+              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
+                <button
+                  onClick={() => onEditCatalogItem(item)}
+                  className="p-1.5 text-zinc-300 hover:text-blue-500 transition-colors rounded-lg hover:bg-blue-50"
+                  title="Edit item"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => onRemoveFromCatalog(item.id)}
+                  className="p-1.5 text-zinc-300 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50"
+                  title="Delete item"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
             <div className="flex items-center justify-between mt-4 pt-3 border-t border-zinc-100">
               <span className="text-xs text-zinc-400 font-mono uppercase">{item.unit}</span>

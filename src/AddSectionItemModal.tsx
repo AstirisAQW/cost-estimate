@@ -2,21 +2,10 @@ import React, { useState, useCallback } from 'react';
 import { X, Search, Book, Plus, Trash2, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CostItem, CatalogItem } from './index';
+import { integerOnly, decimalOnly } from './numericKeys';
 
-// ── Numeric key guards ────────────────────────────────────
-const integerOnly = (e: React.KeyboardEvent<HTMLInputElement>) => {
-  const allowed = ['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'];
-  if (!allowed.includes(e.key) && !/^\d$/.test(e.key)) e.preventDefault();
-};
-
-const decimalOnly = (e: React.KeyboardEvent<HTMLInputElement>) => {
-  const allowed = ['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'];
-  if (!allowed.includes(e.key) && !/^\d$/.test(e.key) && e.key !== '.') e.preventDefault();
-};
-
-// ── Row type (local to this modal) ───────────────────────
 interface SectionItemRow {
-  rowId: string;           // stable key — never based on content
+  rowId: string;
   description: string;
   qty: number | '';
   unit: string;
@@ -42,7 +31,6 @@ const rowFromCatalog = (item: CatalogItem): SectionItemRow => ({
   qtyError: false,
 });
 
-// ── Props ────────────────────────────────────────────────
 interface AddSectionItemModalProps {
   show: boolean;
   catalog: CatalogItem[];
@@ -68,12 +56,9 @@ export function AddSectionItemModal({
       (item.section ?? '').toLowerCase().includes(catalogSearch.toLowerCase()),
   );
 
-  // ── Row helpers ──────────────────────────────────────
   const updateRow = useCallback(
     (rowId: string, patch: Partial<SectionItemRow>) =>
-      setRows((prev) =>
-        prev.map((r) => (r.rowId === rowId ? { ...r, ...patch } : r)),
-      ),
+      setRows((prev) => prev.map((r) => (r.rowId === rowId ? { ...r, ...patch } : r))),
     [],
   );
 
@@ -87,40 +72,28 @@ export function AddSectionItemModal({
   const appendCatalogItem = (item: CatalogItem) =>
     setRows((prev) => [...prev, rowFromCatalog(item)]);
 
-  // ── Submit ────────────────────────────────────────────
   const handleSubmit = () => {
-    // Filter out completely empty rows silently
     const nonEmpty = rows.filter(
       (r) => r.description.trim() || Number(r.qty) > 0 || r.unit.trim() || Number(r.unitCost) > 0,
     );
 
-    // Validate qty > 0 on non-empty rows
     let hasError = false;
     const validated = rows.map((r) => {
-      const isEmpty =
-        !r.description.trim() && !Number(r.qty) && !r.unit.trim() && !Number(r.unitCost);
+      const isEmpty = !r.description.trim() && !Number(r.qty) && !r.unit.trim() && !Number(r.unitCost);
       if (isEmpty) return r;
-      if (!r.qty || Number(r.qty) <= 0) {
-        hasError = true;
-        return { ...r, qtyError: true };
-      }
+      if (!r.qty || Number(r.qty) <= 0) { hasError = true; return { ...r, qtyError: true }; }
       return { ...r, qtyError: false };
     });
 
-    if (hasError) {
-      setRows(validated);
-      return;
-    }
+    if (hasError) { setRows(validated); return; }
+    if (nonEmpty.length === 0) return;
 
-    const items: Omit<CostItem, 'id'>[] = nonEmpty.map((r) => ({
+    onAddItems(nonEmpty.map((r) => ({
       description: r.description.trim(),
       qty: Number(r.qty),
       unit: r.unit.trim(),
       unitCost: Number(r.unitCost),
-    }));
-
-    if (items.length === 0) return;
-    onAddItems(items);
+    })));
     handleClose();
   };
 
@@ -137,10 +110,11 @@ export function AddSectionItemModal({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="bg-zinc-50 rounded-3xl shadow-2xl border border-white/20 w-full max-w-4xl flex flex-col overflow-hidden"
+            className="bg-zinc-50 rounded-3xl shadow-2xl border border-white/20 w-full max-w-4xl flex flex-col"
+            style={{ height: '680px' }}
           >
             {/* ── Header ── */}
-            <div className="px-8 py-5 bg-white border-b border-zinc-200 flex items-center justify-between shrink-0">
+            <div className="px-8 py-5 bg-white border-b border-zinc-200 flex items-center justify-between shrink-0 rounded-t-3xl">
               <div className="flex items-center gap-4">
                 <div className="w-11 h-11 bg-emerald-600 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-100">
                   <Plus className="w-5 h-5 text-white" />
@@ -160,11 +134,11 @@ export function AddSectionItemModal({
               </button>
             </div>
 
-            {/* ── Body ── */}
-            <div className="flex overflow-hidden" style={{ maxHeight: '68vh' }}>
+            {/* ── Body — fills remaining space, overflow hidden ── */}
+            <div className="flex flex-1 min-h-0">
 
-              {/* Left: catalog picker */}
-              <div className="w-56 border-r border-zinc-200 bg-white flex flex-col overflow-hidden flex-shrink-0">
+              {/* Left: catalog picker — fixed width, independent scroll */}
+              <div className="w-56 border-r border-zinc-200 bg-white flex flex-col shrink-0 min-h-0">
                 <div className="p-3 border-b border-zinc-100 shrink-0">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" />
@@ -177,7 +151,6 @@ export function AddSectionItemModal({
                     />
                   </div>
                 </div>
-
                 <div className="flex-1 overflow-y-auto p-2.5 space-y-1">
                   <p className="px-1.5 mb-1.5 text-[9px] font-black text-zinc-400 uppercase tracking-widest">
                     Click to Append Row
@@ -209,9 +182,9 @@ export function AddSectionItemModal({
                 </div>
               </div>
 
-              {/* Right: batch row table */}
-              <div className="flex-1 flex flex-col overflow-hidden">
-                {/* Table header */}
+              {/* Right: batch rows — header fixed, rows scroll */}
+              <div className="flex-1 flex flex-col min-h-0 bg-zinc-50/50">
+                {/* Column header — fixed */}
                 <div className="shrink-0 grid grid-cols-[1fr_5rem_5rem_6rem_2rem] gap-2 px-4 py-2 bg-zinc-100 border-b border-zinc-200 text-[9px] font-black text-zinc-400 uppercase tracking-widest">
                   <span>Item Name</span>
                   <span className="text-center">Qty</span>
@@ -221,13 +194,9 @@ export function AddSectionItemModal({
                 </div>
 
                 {/* Scrollable rows */}
-                <div className="flex-1 overflow-y-auto p-3 space-y-1.5 bg-zinc-50/50">
+                <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
                   {rows.map((row) => (
-                    <div
-                      key={row.rowId}
-                      className="grid grid-cols-[1fr_5rem_5rem_6rem_2rem] gap-2 items-start"
-                    >
-                      {/* Item Name */}
+                    <div key={row.rowId} className="grid grid-cols-[1fr_5rem_5rem_6rem_2rem] gap-2 items-center">
                       <input
                         type="text"
                         value={row.description}
@@ -235,28 +204,20 @@ export function AddSectionItemModal({
                         placeholder="Item name..."
                         className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-emerald-500 outline-none"
                       />
-
-                      {/* Qty */}
                       <input
                         type="number"
                         value={row.qty}
                         placeholder="0"
                         min={1}
                         onKeyDown={integerOnly}
-                        onChange={(e) =>
-                          updateRow(row.rowId, {
-                            qty: e.target.value === '' ? '' : Number(e.target.value),
-                            qtyError: false,
-                          })
-                        }
+                        onChange={(e) => updateRow(row.rowId, {
+                          qty: e.target.value === '' ? '' : Number(e.target.value),
+                          qtyError: false,
+                        })}
                         className={`w-full px-2 py-2 border rounded-lg text-sm font-bold text-center focus:ring-2 focus:ring-emerald-500 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
-                          row.qtyError
-                            ? 'border-red-300 bg-red-50 text-red-600'
-                            : 'bg-white border-zinc-200'
+                          row.qtyError ? 'border-red-300 bg-red-50 text-red-600' : 'bg-white border-zinc-200'
                         }`}
                       />
-
-                      {/* Unit */}
                       <input
                         type="text"
                         value={row.unit}
@@ -264,8 +225,6 @@ export function AddSectionItemModal({
                         placeholder="unit"
                         className="w-full px-2 py-2 bg-white border border-zinc-200 rounded-lg text-sm font-bold text-center focus:ring-2 focus:ring-emerald-500 outline-none"
                       />
-
-                      {/* Unit Cost */}
                       <div className="relative">
                         <span className="absolute left-2 top-1/2 -translate-y-1/2 text-zinc-400 text-xs font-bold">₱</span>
                         <input
@@ -274,16 +233,12 @@ export function AddSectionItemModal({
                           placeholder="0"
                           min={0}
                           onKeyDown={decimalOnly}
-                          onChange={(e) =>
-                            updateRow(row.rowId, {
-                              unitCost: e.target.value === '' ? '' : Number(e.target.value),
-                            })
-                          }
+                          onChange={(e) => updateRow(row.rowId, {
+                            unitCost: e.target.value === '' ? '' : Number(e.target.value),
+                          })}
                           className="w-full pl-5 pr-2 py-2 bg-white border border-zinc-200 rounded-lg text-sm font-bold text-right focus:ring-2 focus:ring-emerald-500 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </div>
-
-                      {/* Delete row */}
                       <button
                         onClick={() => deleteRow(row.rowId)}
                         disabled={rows.length === 1}
@@ -294,7 +249,6 @@ export function AddSectionItemModal({
                     </div>
                   ))}
 
-                  {/* Add blank row button */}
                   <button
                     onClick={appendBlankRow}
                     className="w-full mt-1 py-2 border border-dashed border-zinc-300 rounded-lg text-xs font-bold text-zinc-400 hover:border-emerald-400 hover:text-emerald-600 hover:bg-emerald-50/50 transition-all flex items-center justify-center gap-1.5"
@@ -307,7 +261,7 @@ export function AddSectionItemModal({
             </div>
 
             {/* ── Footer ── */}
-            <div className="px-8 py-4 bg-white border-t border-zinc-200 flex items-center justify-between shrink-0">
+            <div className="px-8 py-4 bg-white border-t border-zinc-200 flex items-center justify-between shrink-0 rounded-b-3xl">
               <p className="text-xs text-zinc-400">
                 {rows.length} row{rows.length !== 1 ? 's' : ''}
               </p>

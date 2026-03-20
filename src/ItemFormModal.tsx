@@ -1,15 +1,9 @@
 import React, { useState, useCallback } from 'react';
 import { X, Search, Book, Plus, Trash2, Pencil, Star, Save } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { CostItem, CatalogItem } from './index';
+import { CatalogItem } from './index';
+import { decimalOnly } from './numericKeys';
 
-// ── Numeric key guard ────────────────────────────────────
-const decimalOnly = (e: React.KeyboardEvent<HTMLInputElement>) => {
-  const allowed = ['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'];
-  if (!allowed.includes(e.key) && !/^\d$/.test(e.key) && e.key !== '.') e.preventDefault();
-};
-
-// ── Row type (local to this modal) ───────────────────────
 interface CatalogItemRow {
   rowId: string;
   description: string;
@@ -24,13 +18,12 @@ const blankRow = (): CatalogItemRow => ({
   unitCost: '',
 });
 
-// ── Props ────────────────────────────────────────────────
 interface ItemFormModalProps {
   show: boolean;
   catalog: CatalogItem[];
   catalogSearch: string;
   onCatalogSearchChange: (val: string) => void;
-  onSaveItems: (items: Pick<CatalogItem, 'description' | 'unit' | 'unitCost'>[]) => void;
+  onSaveItems: (items: (Pick<CatalogItem, 'description' | 'unit' | 'unitCost'> & { id?: string })[]) => void;
   onDeleteCatalogItem: (id: string) => void;
   onClose: () => void;
 }
@@ -45,7 +38,6 @@ export function ItemFormModal({
   onClose,
 }: ItemFormModalProps) {
   const [rows, setRows] = useState<CatalogItemRow[]>([blankRow()]);
-  // When editing an existing catalog item we track which one
   const [editingCatalogId, setEditingCatalogId] = useState<string | null>(null);
 
   const filteredCatalog = catalog.filter(
@@ -54,7 +46,6 @@ export function ItemFormModal({
       (item.section ?? '').toLowerCase().includes(catalogSearch.toLowerCase()),
   );
 
-  // ── Row helpers ──────────────────────────────────────
   const updateRow = useCallback(
     (rowId: string, patch: Partial<CatalogItemRow>) =>
       setRows((prev) => prev.map((r) => (r.rowId === rowId ? { ...r, ...patch } : r))),
@@ -71,7 +62,6 @@ export function ItemFormModal({
     setRows((prev) => [...prev, blankRow()]);
   };
 
-  // Load an existing catalog item into a single-row edit form
   const handleEditCatalogItem = (item: CatalogItem) => {
     setEditingCatalogId(item.id);
     setRows([{
@@ -82,21 +72,25 @@ export function ItemFormModal({
     }]);
   };
 
-  // ── Submit ────────────────────────────────────────────
+  // Reset to blank add-mode — does NOT close the modal
+  const handleDiscardEdit = () => {
+    setEditingCatalogId(null);
+    setRows([blankRow()]);
+  };
+
   const handleSubmit = () => {
     const nonEmpty = rows.filter(
       (r) => r.description.trim() || r.unit.trim() || Number(r.unitCost) > 0,
     );
     if (nonEmpty.length === 0) return;
-
     onSaveItems(nonEmpty.map((r) => ({
+      ...(editingCatalogId ? { id: editingCatalogId } : {}),
       description: r.description.trim(),
       unit: r.unit.trim(),
       unitCost: Number(r.unitCost),
-      ...(editingCatalogId ? { id: editingCatalogId } : {}),
     })));
-
-    handleClose();
+    setRows([blankRow()]);
+    setEditingCatalogId(null);
   };
 
   const handleClose = () => {
@@ -115,10 +109,11 @@ export function ItemFormModal({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="bg-zinc-50 rounded-3xl shadow-2xl border border-white/20 w-full max-w-4xl flex flex-col overflow-hidden"
+            className="bg-zinc-50 rounded-3xl shadow-2xl border border-white/20 w-full max-w-4xl flex flex-col"
+            style={{ height: '680px' }}
           >
             {/* ── Header ── */}
-            <div className="px-8 py-5 bg-white border-b border-zinc-200 flex items-center justify-between shrink-0">
+            <div className="px-8 py-5 bg-white border-b border-zinc-200 flex items-center justify-between shrink-0 rounded-t-3xl">
               <div className="flex items-center gap-4">
                 <div className="w-11 h-11 bg-emerald-600 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-100">
                   <Book className="w-5 h-5 text-white" />
@@ -129,8 +124,8 @@ export function ItemFormModal({
                   </h3>
                   <p className="text-xs text-zinc-400 mt-0.5">
                     {isEditing
-                      ? 'Edit the item details below'
-                      : 'Add multiple items at once · click existing items to edit them'}
+                      ? 'Update the item then save, or discard to go back'
+                      : 'Add multiple items at once · click an existing item to edit it'}
                   </p>
                 </div>
               </div>
@@ -143,10 +138,10 @@ export function ItemFormModal({
             </div>
 
             {/* ── Body ── */}
-            <div className="flex overflow-hidden" style={{ maxHeight: '68vh' }}>
+            <div className="flex flex-1 min-h-0">
 
               {/* Left: existing catalog list */}
-              <div className="w-56 border-r border-zinc-200 bg-white flex flex-col overflow-hidden flex-shrink-0">
+              <div className="w-56 border-r border-zinc-200 bg-white flex flex-col shrink-0 min-h-0">
                 <div className="p-3 border-b border-zinc-100 shrink-0">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" />
@@ -159,7 +154,6 @@ export function ItemFormModal({
                     />
                   </div>
                 </div>
-
                 <div className="flex-1 overflow-y-auto p-2.5 space-y-1">
                   <p className="px-1.5 mb-1.5 text-[9px] font-black text-zinc-400 uppercase tracking-widest">
                     Existing Items
@@ -168,13 +162,13 @@ export function ItemFormModal({
                     filteredCatalog.map((item) => (
                       <div key={item.id} className="group relative">
                         <div
-                          className={`w-full text-left p-2.5 rounded-xl border transition-all ${
+                          className={`p-2.5 rounded-xl border transition-all ${
                             editingCatalogId === item.id
                               ? 'border-emerald-300 bg-emerald-50'
                               : 'border-transparent hover:border-zinc-200 hover:bg-zinc-50'
                           }`}
                         >
-                          <p className="text-xs font-bold text-zinc-900 line-clamp-1 pr-10">
+                          <p className="text-xs font-bold text-zinc-900 line-clamp-1 pr-12">
                             {item.description}
                           </p>
                           <div className="flex items-center justify-between mt-0.5">
@@ -211,9 +205,8 @@ export function ItemFormModal({
                 </div>
               </div>
 
-              {/* Right: batch row table */}
-              <div className="flex-1 flex flex-col overflow-hidden">
-                {/* Table header */}
+              {/* Right: batch rows */}
+              <div className="flex-1 flex flex-col min-h-0 bg-zinc-50/50">
                 <div className="shrink-0 grid grid-cols-[1fr_5rem_7rem_2rem] gap-2 px-4 py-2 bg-zinc-100 border-b border-zinc-200 text-[9px] font-black text-zinc-400 uppercase tracking-widest">
                   <span>Item Name</span>
                   <span className="text-center">Unit</span>
@@ -221,14 +214,9 @@ export function ItemFormModal({
                   <span />
                 </div>
 
-                {/* Scrollable rows */}
-                <div className="flex-1 overflow-y-auto p-3 space-y-1.5 bg-zinc-50/50">
+                <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
                   {rows.map((row) => (
-                    <div
-                      key={row.rowId}
-                      className="grid grid-cols-[1fr_5rem_7rem_2rem] gap-2 items-center"
-                    >
-                      {/* Item Name */}
+                    <div key={row.rowId} className="grid grid-cols-[1fr_5rem_7rem_2rem] gap-2 items-center">
                       <input
                         type="text"
                         value={row.description}
@@ -236,8 +224,6 @@ export function ItemFormModal({
                         placeholder="Item name..."
                         className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-emerald-500 outline-none"
                       />
-
-                      {/* Unit */}
                       <input
                         type="text"
                         value={row.unit}
@@ -245,8 +231,6 @@ export function ItemFormModal({
                         placeholder="unit"
                         className="w-full px-2 py-2 bg-white border border-zinc-200 rounded-lg text-sm font-bold text-center focus:ring-2 focus:ring-emerald-500 outline-none"
                       />
-
-                      {/* Unit Cost */}
                       <div className="relative">
                         <span className="absolute left-2 top-1/2 -translate-y-1/2 text-zinc-400 text-xs font-bold">₱</span>
                         <input
@@ -255,16 +239,12 @@ export function ItemFormModal({
                           placeholder="0"
                           min={0}
                           onKeyDown={decimalOnly}
-                          onChange={(e) =>
-                            updateRow(row.rowId, {
-                              unitCost: e.target.value === '' ? '' : Number(e.target.value),
-                            })
-                          }
+                          onChange={(e) => updateRow(row.rowId, {
+                            unitCost: e.target.value === '' ? '' : Number(e.target.value),
+                          })}
                           className="w-full pl-5 pr-2 py-2 bg-white border border-zinc-200 rounded-lg text-sm font-bold text-right focus:ring-2 focus:ring-emerald-500 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </div>
-
-                      {/* Delete row */}
                       <button
                         onClick={() => deleteRow(row.rowId)}
                         disabled={rows.length === 1}
@@ -275,7 +255,6 @@ export function ItemFormModal({
                     </div>
                   ))}
 
-                  {/* Add blank row — hidden when editing a single item */}
                   {!isEditing && (
                     <button
                       onClick={appendBlankRow}
@@ -290,16 +269,17 @@ export function ItemFormModal({
             </div>
 
             {/* ── Footer ── */}
-            <div className="px-8 py-4 bg-white border-t border-zinc-200 flex items-center justify-between shrink-0">
+            <div className="px-8 py-4 bg-white border-t border-zinc-200 flex items-center justify-between shrink-0 rounded-b-3xl">
               <p className="text-xs text-zinc-400">
                 {isEditing ? 'Editing 1 item' : `${rows.length} row${rows.length !== 1 ? 's' : ''}`}
               </p>
               <div className="flex items-center gap-3">
+                {/* Discard in edit mode → back to add mode; otherwise close modal */}
                 <button
-                  onClick={handleClose}
+                  onClick={isEditing ? handleDiscardEdit : handleClose}
                   className="px-5 py-2.5 text-zinc-400 font-bold hover:text-zinc-600 transition-all text-sm"
                 >
-                  Discard
+                  {isEditing ? 'Cancel Edit' : 'Discard'}
                 </button>
                 <button
                   onClick={handleSubmit}

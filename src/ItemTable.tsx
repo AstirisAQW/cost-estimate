@@ -2,6 +2,7 @@ import React from 'react';
 import { Pencil, Trash2, Plus, ChevronRight } from 'lucide-react';
 import { Project, CostItem } from './index';
 import { toRoman } from './helpers';
+import { decimalOnly } from './numericKeys';
 
 const fmt = (n: number) =>
   `₱${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -45,7 +46,7 @@ function CostInput({ value, onChange }: { value: number; onChange: (v: number) =
       value={value || ''}
       placeholder="0"
       min={0}
-      onKeyDown={numericOnly}
+      onKeyDown={decimalOnly}
       onChange={(e) => onChange(Math.max(0, Number(e.target.value)))}
       className="w-full text-right bg-white border border-zinc-200 rounded-lg px-2 py-1 text-xs font-bold focus:ring-2 focus:ring-emerald-500 outline-none transition-all hover:border-zinc-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
     />
