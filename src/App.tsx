@@ -16,7 +16,7 @@ import { Project, CostItem, CatalogItem } from './index';
 
 const EMPTY_PROJECT: NewProjectState = {
   name: '',
-  subject: 'Estimate Items',
+  subject: '',
   location: { street: '', barangay: '', city: '', province: '', postalCode: '' },
   owner: '',
 };
@@ -57,7 +57,7 @@ export default function App() {
     const project: Project = {
       id: Math.random().toString(36).substr(2, 9),
       name: newProject.name,
-      subject: newProject.subject || 'Estimate Items',
+      subject: newProject.subject || 'Cost Estimate',
       location: { ...newProject.location },
       owner: newProject.owner,
       date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),

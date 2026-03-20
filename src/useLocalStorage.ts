@@ -4,15 +4,15 @@ import { Project, CatalogItem } from './index';
 const DEFAULT_PROJECT: Project = {
   id: 'default-1',
   name: 'Sample Project',
-  subject: 'Estimate Items',
+  subject: 'Cost Estimate',
   location: {
-    street: '7114 Kundiman Street',
-    barangay: 'Sampaloc',
-    city: 'Manila',
-    province: 'Metro Manila',
-    postalCode: '1008',
+    street: '',
+    barangay: '',
+    city: '',
+    province: '',
+    postalCode: '',
   },
-  owner: 'EngiTrack Corp',
+  owner: 'John Doe',
   date: new Date().toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
