@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { X, Search, Book, Plus, Trash2, Star, Save } from 'lucide-react';
+import { X, Search, Book, Plus, Trash2, Save } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CatalogItem } from './index';
 import { decimalOnly } from './numericKeys';
@@ -112,8 +112,14 @@ export function ItemFormModal({
       unit: r.unit.trim(),
       unitCost: Number(r.unitCost),
     })));
-    setRows([blankRow()]);
-    setEditingCatalogId(null);
+    if (initialEditItem) {
+      // Opened from CatalogView — close entirely after saving
+      handleClose();
+    } else {
+      // Opened from within the modal — reset to add mode so user can keep adding
+      setRows([blankRow()]);
+      setEditingCatalogId(null);
+    }
   };
 
   const handleClose = () => {
@@ -306,7 +312,7 @@ export function ItemFormModal({
                       : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-100'
                   }`}
                 >
-                  {isEditing ? <Save className="w-4 h-4" /> : <Star className="w-4 h-4" />}
+                  {isEditing ? <Save className="w-4 h-4" /> : <Save className="w-4 h-4" />}
                   {isEditing ? 'Update Item' : 'Add All to Catalog'}
                 </button>
               </div>
