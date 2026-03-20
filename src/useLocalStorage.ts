@@ -10,8 +10,8 @@ export function useAppStorage() {
 
   // Load from localStorage on mount
   useEffect(() => {
-    const savedProjects = localStorage.getItem('engitrack_projects');
-    const savedCatalog  = localStorage.getItem('engitrack_catalog');
+    const savedProjects = localStorage.getItem('projects');
+    const savedCatalog  = localStorage.getItem('catalog');
 
     if (savedProjects) {
       try {
@@ -96,14 +96,14 @@ export function useAppStorage() {
   // Persist projects
   useEffect(() => {
     if (initialized) {
-      localStorage.setItem('engitrack_projects', JSON.stringify(projects));
+      localStorage.setItem('projects', JSON.stringify(projects));
     }
   }, [projects, initialized]);
 
   // Persist catalog
   useEffect(() => {
     if (initialized) {
-      localStorage.setItem('engitrack_catalog', JSON.stringify(catalog));
+      localStorage.setItem('catalog', JSON.stringify(catalog));
     }
   }, [catalog, initialized]);
 
