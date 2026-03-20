@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { X, Search, Book, Plus, Trash2, Pencil, Star, Save } from 'lucide-react';
+import { X, Search, Book, Plus, Trash2, Star, Save } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CatalogItem } from './index';
 import { decimalOnly } from './numericKeys';
@@ -90,10 +90,15 @@ export function ItemFormModal({
     }]);
   };
 
-  // Reset to blank add-mode — does NOT close the modal
+  // If edit was triggered from CatalogView (initialEditItem), close entirely.
+  // If edit was triggered from within the modal's left panel, go back to add mode.
   const handleDiscardEdit = () => {
-    setEditingCatalogId(null);
-    setRows([blankRow()]);
+    if (initialEditItem) {
+      handleClose();
+    } else {
+      setEditingCatalogId(null);
+      setRows([blankRow()]);
+    }
   };
 
   const handleSubmit = () => {
@@ -179,14 +184,15 @@ export function ItemFormModal({
                   {catalog.length > 0 ? (
                     filteredCatalog.map((item) => (
                       <div key={item.id} className="group relative">
-                        <div
-                          className={`p-2.5 rounded-xl border transition-all ${
+                        <button
+                          onClick={() => handleEditCatalogItem(item)}
+                          className={`w-full text-left p-2.5 rounded-xl border transition-all ${
                             editingCatalogId === item.id
                               ? 'border-emerald-300 bg-emerald-50'
                               : 'border-transparent hover:border-zinc-200 hover:bg-zinc-50'
                           }`}
                         >
-                          <p className="text-xs font-bold text-zinc-900 line-clamp-1 pr-12">
+                          <p className="text-xs font-bold text-zinc-900 line-clamp-1 pr-6">
                             {item.description}
                           </p>
                           <div className="flex items-center justify-between mt-0.5">
@@ -195,17 +201,10 @@ export function ItemFormModal({
                               ₱{item.unitCost.toLocaleString()}
                             </span>
                           </div>
-                        </div>
-                        <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
+                        </button>
+                        <div className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all">
                           <button
-                            onClick={() => handleEditCatalogItem(item)}
-                            className="p-1 text-zinc-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                            title="Edit"
-                          >
-                            <Pencil className="w-3 h-3" />
-                          </button>
-                          <button
-                            onClick={() => onDeleteCatalogItem(item.id)}
+                            onClick={(e) => { e.stopPropagation(); onDeleteCatalogItem(item.id); }}
                             className="p-1 text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
                             title="Delete"
                           >

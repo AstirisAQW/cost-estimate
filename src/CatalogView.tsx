@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Plus, Book, Trash2, Pencil } from 'lucide-react';
+import { Search, Plus, Book, Trash2 } from 'lucide-react';
 import { CatalogItem } from './index';
 
 interface CatalogViewProps {
@@ -59,7 +59,8 @@ export function CatalogView({
         {filtered.map((item) => (
           <div
             key={item.id}
-            className="bg-white border border-zinc-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all group"
+            onClick={() => onEditCatalogItem(item)}
+            className="bg-white border border-zinc-200 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-emerald-200 transition-all group cursor-pointer relative"
           >
             <div className="flex justify-between items-start mb-3">
               <div className="flex-1 pr-2">
@@ -68,23 +69,14 @@ export function CatalogView({
                 </p>
                 <h4 className="font-bold text-zinc-900 text-sm leading-snug">{item.description}</h4>
               </div>
-              {/* Edit + Delete — visible on hover */}
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
-                <button
-                  onClick={() => onEditCatalogItem(item)}
-                  className="p-1.5 text-zinc-300 hover:text-blue-500 transition-colors rounded-lg hover:bg-blue-50"
-                  title="Edit item"
-                >
-                  <Pencil className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  onClick={() => onRemoveFromCatalog(item.id)}
-                  className="p-1.5 text-zinc-300 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50"
-                  title="Delete item"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
+              {/* Only delete on hover — clicking the card itself edits */}
+              <button
+                onClick={(e) => { e.stopPropagation(); onRemoveFromCatalog(item.id); }}
+                className="p-1.5 text-zinc-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 rounded-lg hover:bg-red-50 flex-shrink-0"
+                title="Delete item"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
             </div>
             <div className="flex items-center justify-between mt-4 pt-3 border-t border-zinc-100">
               <span className="text-xs text-zinc-400 font-mono uppercase">{item.unit}</span>
