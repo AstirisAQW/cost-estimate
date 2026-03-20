@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { Plus, Folder, AlertTriangle } from 'lucide-react';
 
 import { Sidebar } from './Sidebar';
@@ -40,8 +40,8 @@ export default function App() {
   const [newProject,             setNewProject]             = useState<NewProjectState>(EMPTY_PROJECT);
   const [confirmDeleteProjectId, setConfirmDeleteProjectId] = useState<string | null>(null);
 
-  // Used to pre-load an item into ItemFormModal when editing from CatalogView
-  const editCatalogItemRef = useRef<CatalogItem | null>(null);
+  // The item being edited in the section item modal — null = add mode
+  const [editingItem, setEditingItem] = useState<CostItem | null>(null);
 
   // ── Derived active project ────────────────────────────────
   const activeProject = projects.find((p) => p.id === activeProjectId);
@@ -144,6 +144,8 @@ export default function App() {
   };
 
   // ── Section items ─────────────────────────────────────────
+
+  // Batch add new items to the active section
   const addItemsToSection = (newItems: Omit<CostItem, 'id'>[]) => {
     if (!activeProjectId || !activeSectionId) return;
     const itemsWithIds: CostItem[] = newItems.map((item) => ({
@@ -160,6 +162,40 @@ export default function App() {
     ));
   };
 
+  // Update a single existing item in place
+  const updateSectionItem = (itemId: string, updates: Omit<CostItem, 'id'>) => {
+    setProjects(projects.map((p) =>
+      p.id !== activeProjectId ? p : {
+        ...p,
+        sections: (p.sections ?? []).map((s) => ({
+          ...s,
+          items: (s.items ?? []).map((item) =>
+            item.id === itemId ? { ...updates, id: itemId } : item,
+          ),
+        })),
+      },
+    ));
+  };
+
+  // Open modal in edit mode with the item pre-loaded
+  const openEditItem = (item: CostItem, sectionId: string) => {
+    setActiveSectionId(sectionId);
+    setEditingItem(item);
+    setShowSectionItemForm(true);
+  };
+
+  // Open modal in add mode
+  const openAddItems = (sectionId: string) => {
+    setActiveSectionId(sectionId);
+    setEditingItem(null);
+    setShowSectionItemForm(true);
+  };
+
+  const closeSectionItemForm = () => {
+    setShowSectionItemForm(false);
+    setEditingItem(null);
+  };
+
   const removeItemFromSection = (itemId: string) => {
     setProjects(projects.map((p) =>
       p.id !== activeProjectId ? p : {
@@ -170,11 +206,6 @@ export default function App() {
         })),
       },
     ));
-  };
-
-  const editSectionItem = (item: CostItem, sectionId: string) => {
-    setActiveSectionId(sectionId);
-    setShowSectionItemForm(true);
   };
 
   // ── Catalog ───────────────────────────────────────────────
@@ -204,11 +235,17 @@ export default function App() {
     });
   };
 
-  // Open catalog form pre-loaded into edit mode for a specific item
   const handleEditCatalogItemFromView = (item: CatalogItem) => {
-    editCatalogItemRef.current = item;
     setShowCatalogForm(true);
+    // ItemFormModal reads editingCatalogItem via its own internal state triggered by the left panel
+    // We open the modal and let the user click the item in the left panel to edit it
+    // For direct edit from CatalogView we pass it as a pre-load signal via a key trick:
+    // simplest: store on a ref and pass as initialEditItem prop
+    _pendingCatalogEdit.current = item;
   };
+
+  // Ref to carry a pending catalog edit from CatalogView into ItemFormModal on open
+  const _pendingCatalogEdit = React.useRef<CatalogItem | null>(null);
 
   // ── Render ────────────────────────────────────────────────
   return (
@@ -233,10 +270,13 @@ export default function App() {
               catalogSearch={catalogSearch}
               onSearchChange={setCatalogSearch}
               onAddToCatalog={() => {
-                editCatalogItemRef.current = null;
+                _pendingCatalogEdit.current = null;
                 setShowCatalogForm(true);
               }}
-              onEditCatalogItem={handleEditCatalogItemFromView}
+              onEditCatalogItem={(item) => {
+                _pendingCatalogEdit.current = item;
+                setShowCatalogForm(true);
+              }}
               onRemoveFromCatalog={(id) => setCatalog(catalog.filter((item) => item.id !== id))}
             />
           ) : activeProject ? (
@@ -249,12 +289,9 @@ export default function App() {
               <SectionsManager
                 project={activeProject}
                 onAddSection={() => setShowSectionForm(true)}
-                onEditItem={editSectionItem}
+                onEditItem={openEditItem}
                 onRemoveItem={removeItemFromSection}
-                onAddItemToSection={(sectionId) => {
-                  setActiveSectionId(sectionId);
-                  setShowSectionItemForm(true);
-                }}
+                onAddItemToSection={openAddItems}
                 onUpdateSectionTitle={updateSectionTitle}
                 onUpdateSectionCosts={updateSectionCosts}
                 onMoveSection={moveSection}
@@ -292,25 +329,30 @@ export default function App() {
         onClose={() => setShowSectionForm(false)}
       />
 
+      {/* Add items to section (batch) or edit a single item */}
       <AddSectionItemModal
         show={showSectionItemForm}
         catalog={catalog}
         catalogSearch={catalogSearch}
+        editingItem={editingItem}
         onCatalogSearchChange={setCatalogSearch}
         onAddItems={addItemsToSection}
-        onClose={() => setShowSectionItemForm(false)}
+        onUpdateItem={updateSectionItem}
+        onClose={closeSectionItemForm}
       />
 
+      {/* Add / edit catalog entries */}
       <ItemFormModal
         show={showCatalogForm}
         catalog={catalog}
         catalogSearch={catalogSearch}
+        initialEditItem={_pendingCatalogEdit.current}
         onCatalogSearchChange={setCatalogSearch}
         onSaveItems={saveCatalogItems}
         onDeleteCatalogItem={(id) => setCatalog((prev) => prev.filter((i) => i.id !== id))}
         onClose={() => {
           setShowCatalogForm(false);
-          editCatalogItemRef.current = null;
+          _pendingCatalogEdit.current = null;
         }}
       />
 

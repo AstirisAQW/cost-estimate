@@ -19,6 +19,7 @@ const blankRow = (): CatalogItemRow => ({
 });
 
 interface ItemFormModalProps {
+  initialEditItem?: CatalogItem | null;
   show: boolean;
   catalog: CatalogItem[];
   catalogSearch: string;
@@ -36,9 +37,26 @@ export function ItemFormModal({
   onSaveItems,
   onDeleteCatalogItem,
   onClose,
+  initialEditItem,
 }: ItemFormModalProps) {
   const [rows, setRows] = useState<CatalogItemRow[]>([blankRow()]);
   const [editingCatalogId, setEditingCatalogId] = useState<string | null>(null);
+
+  // Pre-load when opened from CatalogView edit button
+  React.useEffect(() => {
+    if (show && initialEditItem) {
+      setEditingCatalogId(initialEditItem.id);
+      setRows([{
+        rowId: Math.random().toString(36).slice(2),
+        description: initialEditItem.description,
+        unit: initialEditItem.unit,
+        unitCost: initialEditItem.unitCost,
+      }]);
+    } else if (show && !initialEditItem) {
+      setEditingCatalogId(null);
+      setRows([blankRow()]);
+    }
+  }, [show, initialEditItem]);
 
   const filteredCatalog = catalog.filter(
     (item) =>
