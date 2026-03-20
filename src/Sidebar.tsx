@@ -80,7 +80,7 @@ export function Sidebar({
           }`}
         >
           <Book className={`w-4 h-4 ${showCatalog ? 'text-emerald-600' : 'text-zinc-400'}`} />
-          Master Catalog
+          Catalog
           <span className="ml-auto bg-zinc-100 text-zinc-500 text-[10px] px-1.5 py-0.5 rounded-full">
             {catalog.length}
           </span>
