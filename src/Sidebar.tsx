@@ -23,27 +23,27 @@ export function Sidebar({
 }: SidebarProps) {
   return (
     <aside className="w-64 bg-white border-r border-zinc-200 flex flex-col flex-shrink-0">
-      {/* Brand + new project */}
+      {/* Brand */}
       <div className="p-6 border-b border-zinc-100">
-        <div className="flex items-center gap-2 mb-6">
+        <div className="flex items-center gap-2">
           <div className="bg-emerald-600 p-2 rounded-lg">
             <HardHat className="text-white w-5 h-5" />
           </div>
           <h1 className="text-xl font-bold tracking-tight text-zinc-900">Cost Estimate</h1>
         </div>
-        <button
-          onClick={onNewProject}
-          className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl transition-all shadow-sm font-bold text-sm"
-        >
-          <Plus className="w-4 h-4" />
-          New Project
-        </button>
       </div>
 
       {/* Navigation */}
       <div className="flex-1 overflow-y-auto p-4 space-y-1">
         <div className="flex items-center justify-between px-2 mb-2">
           <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Projects</p>
+          <button
+            onClick={onNewProject}
+            className="flex items-center justify-center w-5 h-5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white transition-all"
+            title="New Project"
+          >
+            <Plus className="w-3 h-3" />
+          </button>
         </div>
 
         {projects.map((p) => {
@@ -80,7 +80,7 @@ export function Sidebar({
           }`}
         >
           <Book className={`w-4 h-4 ${showCatalog ? 'text-emerald-600' : 'text-zinc-400'}`} />
-          Catalog
+          Master Catalog
           <span className="ml-auto bg-zinc-100 text-zinc-500 text-[10px] px-1.5 py-0.5 rounded-full">
             {catalog.length}
           </span>

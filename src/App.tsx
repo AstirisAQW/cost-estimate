@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Folder, AlertTriangle } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
@@ -55,6 +55,7 @@ export default function App() {
   // ── Project CRUD ──────────────────────────────────────────
   const createProject = () => {
     if (!newProject.name) return;
+    const firstSectionId = Math.random().toString(36).substr(2, 9);
     const project: Project = {
       id: Math.random().toString(36).substr(2, 9),
       name: newProject.name,
@@ -62,11 +63,18 @@ export default function App() {
       location: { ...newProject.location },
       owner: newProject.owner,
       date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
-      sections: [],
+      sections: [{
+        id: firstSectionId,
+        title: '',
+        items: [],
+        laborCost: 0,
+        equipmentCost: 0,
+        indirectCost: 0,
+      }],
     };
     setProjects([...projects, project]);
     setActiveProjectId(project.id);
-    setActiveSectionId(null);
+    setActiveSectionId(firstSectionId);
     setNewProject(EMPTY_PROJECT);
     setShowProjectForm(false);
   };
@@ -339,24 +347,7 @@ export default function App() {
                 onImportCSV={handleImportCSV}
               />
             </div>
-          ) : (
-            <div className="h-full flex flex-col items-center justify-center text-center">
-              <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mb-6">
-                <Folder className="w-8 h-8 text-zinc-400" />
-              </div>
-              <h3 className="text-xl font-bold text-zinc-900 mb-2">Select or Create a Project</h3>
-              <p className="text-zinc-500 max-w-sm mx-auto mb-8">
-                Use the sidebar to manage your engineering projects and estimates.
-              </p>
-              <button
-                onClick={() => setShowProjectForm(true)}
-                className="flex items-center gap-2 bg-emerald-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-all"
-              >
-                <Plus className="w-4 h-4" />
-                Create New Project
-              </button>
-            </div>
-          )}
+          ) : null}
         </main>
       </div>
 
