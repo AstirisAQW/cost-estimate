@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Plus, Copy, Download, Upload, Layout } from 'lucide-react';
+import { Plus, Download, Upload, Layout } from 'lucide-react';
 import { Project, CostItem, Section } from './index';
 import { ItemTable } from './ItemTable';
 import { exportToCSV } from './helpers';
@@ -35,18 +35,7 @@ export function SectionsManager({
   onUpdateSubject,
   onImportCSV,
 }: SectionsManagerProps) {
-  const tableRef    = useRef<HTMLTableElement>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
-
-  const copyForWord = () => {
-    if (!tableRef.current) return;
-    const range = document.createRange();
-    range.selectNode(tableRef.current);
-    window.getSelection()?.removeAllRanges();
-    window.getSelection()?.addRange(range);
-    try { document.execCommand('copy'); } catch { /* silent */ }
-    window.getSelection()?.removeAllRanges();
-  };
 
   const handleCSVImportChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -94,13 +83,16 @@ export function SectionsManager({
     <div className="space-y-4">
       {/* Actions bar */}
       <div className="flex items-center justify-between">
-        <input
-          type="text"
-          value={project.subject}
-          onChange={(e) => onUpdateSubject(e.target.value)}
-          className="bg-transparent border-none p-0 focus:ring-0 font-bold text-lg text-zinc-900 w-64"
-          placeholder="enter project subject..."
-        />
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-bold text-zinc-500 whitespace-nowrap">Subject:</span>
+          <input
+            type="text"
+            value={project.subject}
+            onChange={(e) => onUpdateSubject(e.target.value)}
+            className="bg-transparent border-none p-0 focus:ring-0 font-bold text-lg text-zinc-900 w-64"
+            placeholder="enter project subject..."
+          />
+        </div>
         <div className="flex items-center gap-2">
           <button
             onClick={onAddSection}
@@ -109,14 +101,6 @@ export function SectionsManager({
             <Plus className="w-3.5 h-3.5" />
             Add Section
           </button>
-          <button
-            onClick={copyForWord}
-            className="flex items-center gap-2 text-xs font-semibold text-zinc-600 hover:text-emerald-600 transition-colors bg-white border border-zinc-200 px-3 py-1.5 rounded-lg"
-          >
-            <Copy className="w-3.5 h-3.5" />
-            Copy for Word
-          </button>
-
           {/* Import CSV */}
           <input
             ref={csvInputRef}
@@ -146,7 +130,6 @@ export function SectionsManager({
 
       <ItemTable
         project={project}
-        tableRef={tableRef}
         onEditItem={onEditItem}
         onRemoveItem={onRemoveItem}
         onAddItemToSection={onAddItemToSection}

@@ -55,7 +55,6 @@ export default function App() {
   // ── Project CRUD ──────────────────────────────────────────
   const createProject = () => {
     if (!newProject.name) return;
-    const firstSectionId = Math.random().toString(36).substr(2, 9);
     const project: Project = {
       id: Math.random().toString(36).substr(2, 9),
       name: newProject.name,
@@ -63,18 +62,11 @@ export default function App() {
       location: { ...newProject.location },
       owner: newProject.owner,
       date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
-      sections: [{
-        id: firstSectionId,
-        title: '',
-        items: [],
-        laborCost: 0,
-        equipmentCost: 0,
-        indirectCost: 0,
-      }],
+      sections: [],
     };
     setProjects([...projects, project]);
     setActiveProjectId(project.id);
-    setActiveSectionId(firstSectionId);
+    setActiveSectionId(null);
     setNewProject(EMPTY_PROJECT);
     setShowProjectForm(false);
   };
