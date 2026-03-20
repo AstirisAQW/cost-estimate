@@ -1,7 +1,23 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { X, Search, Book, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CostItem, CatalogItem } from './index';
+
+// Blocks all non-numeric keys (letters, symbols) — allows digits only, no decimals for integer fields
+const integerOnly = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const allowed = ['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'];
+  if (!allowed.includes(e.key) && !/^\d$/.test(e.key)) {
+    e.preventDefault();
+  }
+};
+
+// Allows digits and one decimal point
+const decimalOnly = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const allowed = ['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'];
+  if (!allowed.includes(e.key) && !/^\d$/.test(e.key) && e.key !== '.') {
+    e.preventDefault();
+  }
+};
 
 interface AddSectionItemModalProps {
   show: boolean;
@@ -28,11 +44,35 @@ export function AddSectionItemModal({
   onAddItem,
   onClose,
 }: AddSectionItemModalProps) {
+  const [selectedCatalogId, setSelectedCatalogId] = useState<string | null>(null);
+  const [qtyError, setQtyError] = useState(false);
+
   const filteredCatalog = catalog.filter(
     (item) =>
       item.description.toLowerCase().includes(catalogSearch.toLowerCase()) ||
       (item.section ?? '').toLowerCase().includes(catalogSearch.toLowerCase()),
   );
+
+  const handleLoadFromCatalog = (item: CatalogItem) => {
+    setSelectedCatalogId(item.id);
+    onLoadFromCatalog(item);
+  };
+
+  const handleClose = () => {
+    setSelectedCatalogId(null);
+    setQtyError(false);
+    onClose();
+  };
+
+  const handleSubmit = () => {
+    if (!newItem.qty || newItem.qty <= 0) {
+      setQtyError(true);
+      return;
+    }
+    setSelectedCatalogId(null);
+    setQtyError(false);
+    onAddItem();
+  };
 
   return (
     <AnimatePresence>
@@ -55,7 +95,7 @@ export function AddSectionItemModal({
                 </h3>
               </div>
               <button
-                onClick={onClose}
+                onClick={handleClose}
                 className="w-10 h-10 flex items-center justify-center rounded-full bg-zinc-100 text-zinc-400 hover:bg-zinc-200 hover:text-zinc-600 transition-all"
               >
                 <X className="w-5 h-5" />
@@ -87,10 +127,9 @@ export function AddSectionItemModal({
                     filteredCatalog.map((item) => (
                       <button
                         key={item.id}
-                        onClick={() => onLoadFromCatalog(item)}
+                        onClick={() => handleLoadFromCatalog(item)}
                         className={`w-full text-left p-3 rounded-xl border transition-all ${
-                          newItem.description === item.description &&
-                          newItem.unitCost === item.unitCost
+                          selectedCatalogId === item.id
                             ? 'border-emerald-300 bg-emerald-50'
                             : 'border-transparent hover:border-emerald-200 hover:bg-emerald-50/50'
                         }`}
@@ -134,18 +173,28 @@ export function AddSectionItemModal({
 
                   {/* Qty / Unit / Unit Cost */}
                   <div className="grid grid-cols-3 gap-4">
+                    {/* Quantity */}
                     <div>
-                      <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2">
-                        Quantity
+                      <label className={`block text-[10px] font-black uppercase tracking-widest mb-2 ${qtyError ? 'text-red-500' : 'text-zinc-400'}`}>
+                        Quantity{qtyError && <span className="normal-case font-normal ml-1">— must be &gt; 0</span>}
                       </label>
                       <input
                         type="number"
                         value={newItem.qty || ''}
-                        onChange={(e) => onItemChange({ ...newItem, qty: Number(e.target.value) })}
                         placeholder="0"
-                        className="w-full px-4 py-3 bg-white border border-zinc-200 rounded-xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none text-lg font-bold shadow-sm"
+                        min={1}
+                        onKeyDown={integerOnly}
+                        onChange={(e) => {
+                          setQtyError(false);
+                          onItemChange({ ...newItem, qty: Number(e.target.value) });
+                        }}
+                        className={`w-full px-4 py-3 bg-white border rounded-xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none text-lg font-bold shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                          qtyError ? 'border-red-300 bg-red-50' : 'border-zinc-200'
+                        }`}
                       />
                     </div>
+
+                    {/* Unit */}
                     <div>
                       <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2">
                         Unit
@@ -158,6 +207,8 @@ export function AddSectionItemModal({
                         className="w-full px-4 py-3 bg-white border border-zinc-200 rounded-xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none text-lg font-bold shadow-sm"
                       />
                     </div>
+
+                    {/* Unit Cost */}
                     <div>
                       <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2">
                         Unit Cost
@@ -167,9 +218,11 @@ export function AddSectionItemModal({
                         <input
                           type="number"
                           value={newItem.unitCost || ''}
-                          onChange={(e) => onItemChange({ ...newItem, unitCost: Number(e.target.value) })}
                           placeholder="0"
-                          className="w-full pl-9 pr-4 py-3 bg-white border border-zinc-200 rounded-xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none text-lg font-bold shadow-sm"
+                          min={0}
+                          onKeyDown={decimalOnly}
+                          onChange={(e) => onItemChange({ ...newItem, unitCost: Number(e.target.value) })}
+                          className="w-full pl-9 pr-4 py-3 bg-white border border-zinc-200 rounded-xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none text-lg font-bold shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </div>
                     </div>
@@ -181,13 +234,13 @@ export function AddSectionItemModal({
             {/* ── Footer ── */}
             <div className="px-8 py-5 bg-white border-t border-zinc-200 flex items-center justify-between shrink-0">
               <button
-                onClick={onClose}
+                onClick={handleClose}
                 className="px-6 py-2.5 text-zinc-400 font-bold hover:text-zinc-600 transition-all text-sm"
               >
                 Discard
               </button>
               <button
-                onClick={onAddItem}
+                onClick={handleSubmit}
                 className="flex items-center gap-2 px-8 py-3 bg-emerald-600 text-white rounded-2xl font-black text-base hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-100"
               >
                 {editingItemId ? 'Update Item' : 'Add to Section'}

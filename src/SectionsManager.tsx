@@ -79,7 +79,7 @@ export function SectionsManager({
           value={project.subject}
           onChange={(e) => onUpdateSubject(e.target.value)}
           className="bg-transparent border-none p-0 focus:ring-0 font-bold text-lg text-zinc-900 w-64"
-          placeholder="Estimate Items"
+          placeholder="Enter subject here"
         />
         <div className="flex items-center gap-2">
           <button
