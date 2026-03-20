@@ -92,7 +92,6 @@ export function CatalogView({
           <div className="col-span-full py-20 text-center bg-white border border-dashed border-zinc-200 rounded-2xl">
             <Book className="w-12 h-12 text-zinc-200 mx-auto mb-4" />
             <p className="text-zinc-400 text-sm font-medium">Your catalog is empty.</p>
-            <p className="text-zinc-300 text-xs mt-1">Save items from your projects to see them here.</p>
           </div>
         )}
       </div>
