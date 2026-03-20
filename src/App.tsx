@@ -17,7 +17,7 @@ import { exportCatalog, parseCatalogImport, importFromCSV } from './helpers';
 
 const EMPTY_PROJECT: NewProjectState = {
   name: '',
-  subject: 'Estimate Items',
+  subject: '',
   location: { street: '', barangay: '', city: '', province: '', postalCode: '' },
   owner: '',
 };
@@ -59,13 +59,13 @@ export default function App() {
     const project: Project = {
       id: Math.random().toString(36).substr(2, 9),
       name: newProject.name,
-      subject: newProject.subject || 'Estimate Items',
+      subject: newProject.subject,
       location: { ...newProject.location },
       owner: newProject.owner,
       date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
       sections: [{
         id: firstSectionId,
-        title: 'General Requirements',
+        title: '',
         items: [],
         laborCost: 0,
         equipmentCost: 0,
@@ -427,7 +427,7 @@ export default function App() {
                 </div>
               </div>
               <p className="text-xs text-zinc-400 mb-6 bg-zinc-50 rounded-xl px-4 py-3">
-                This action cannot be undone. All sections and estimate items in this project will be lost.
+                This action cannot be undone. All sections and listed items in this project will be lost.
               </p>
               <div className="flex gap-3">
                 <button

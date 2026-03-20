@@ -63,9 +63,6 @@ export function SectionsManager({
           <Layout className="w-8 h-8 text-emerald-600" />
         </div>
         <h3 className="text-xl font-bold text-zinc-900 mb-2">No Sections Yet</h3>
-        <p className="text-zinc-500 max-w-sm mx-auto mb-8">
-          Create sections to organize your project estimate items.
-        </p>
         <div className="flex items-center gap-3">
           <button
             onClick={onAddSection}
@@ -102,7 +99,7 @@ export function SectionsManager({
           value={project.subject}
           onChange={(e) => onUpdateSubject(e.target.value)}
           className="bg-transparent border-none p-0 focus:ring-0 font-bold text-lg text-zinc-900 w-64"
-          placeholder="Estimate Itsems"
+          placeholder="enter project subject..."
         />
         <div className="flex items-center gap-2">
           <button
