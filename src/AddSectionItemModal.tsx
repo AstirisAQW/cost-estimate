@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { X, Search, Book, Plus, Trash2, ChevronRight, Pencil } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CostItem, CatalogItem } from './index';
-import { integerOnly, decimalOnly } from './numericKeys';
+import { decimalOnly } from './numericKeys';
 
 interface SectionItemRow {
   rowId: string;
@@ -254,7 +254,7 @@ export function AddSectionItemModal({
                         value={row.qty}
                         placeholder="0"
                         min={1}
-                        onKeyDown={integerOnly}
+                        onKeyDown={decimalOnly}
                         onChange={(e) => updateRow(row.rowId, {
                           qty: e.target.value === '' ? '' : Number(e.target.value),
                           qtyError: false,

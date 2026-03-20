@@ -1,5 +1,5 @@
-import React from 'react';
-import { Search, Plus, Book, Trash2 } from 'lucide-react';
+import React, { useRef } from 'react';
+import { Search, Plus, Book, Trash2, Download, Upload } from 'lucide-react';
 import { CatalogItem } from './index';
 
 interface CatalogViewProps {
@@ -9,6 +9,8 @@ interface CatalogViewProps {
   onAddToCatalog: () => void;
   onEditCatalogItem: (item: CatalogItem) => void;
   onRemoveFromCatalog: (id: string) => void;
+  onExportCatalog: () => void;
+  onImportCatalog: (file: File) => void;
 }
 
 export function CatalogView({
@@ -18,12 +20,23 @@ export function CatalogView({
   onAddToCatalog,
   onEditCatalogItem,
   onRemoveFromCatalog,
+  onExportCatalog,
+  onImportCatalog,
 }: CatalogViewProps) {
+  const importInputRef = useRef<HTMLInputElement>(null);
+
   const filtered = catalog.filter(
     (item) =>
       item.description.toLowerCase().includes(catalogSearch.toLowerCase()) ||
       (item.section ?? '').toLowerCase().includes(catalogSearch.toLowerCase()),
   );
+
+  const handleImportChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) onImportCatalog(file);
+    // Reset so the same file can be re-imported if needed
+    e.target.value = '';
+  };
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -33,7 +46,7 @@ export function CatalogView({
           <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Master Catalog</h2>
           <p className="text-zinc-500 text-sm">Save common items here to reuse them across all projects.</p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           <div className="relative">
             <Search className="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
@@ -41,15 +54,45 @@ export function CatalogView({
               placeholder="Search catalog..."
               value={catalogSearch}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="pl-10 pr-4 py-2 bg-white border border-zinc-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none w-64"
+              className="pl-10 pr-4 py-2 bg-white border border-zinc-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none w-56"
             />
           </div>
+
+          {/* Import Catalog */}
+          <input
+            ref={importInputRef}
+            type="file"
+            accept=".json"
+            onChange={handleImportChange}
+            className="hidden"
+          />
+          <button
+            onClick={() => importInputRef.current?.click()}
+            className="flex items-center gap-2 text-sm font-semibold text-zinc-600 hover:text-emerald-600 bg-white border border-zinc-200 hover:border-emerald-300 px-3 py-2 rounded-lg transition-all"
+            title="Import catalog from JSON"
+          >
+            <Upload className="w-4 h-4" />
+            Import
+          </button>
+
+          {/* Export Catalog */}
+          <button
+            onClick={onExportCatalog}
+            disabled={catalog.length === 0}
+            className="flex items-center gap-2 text-sm font-semibold text-zinc-600 hover:text-emerald-600 bg-white border border-zinc-200 hover:border-emerald-300 px-3 py-2 rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            title="Export catalog to JSON"
+          >
+            <Download className="w-4 h-4" />
+            Export
+          </button>
+
+          {/* Add to Catalog */}
           <button
             onClick={onAddToCatalog}
             className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg transition-all shadow-sm font-medium text-sm"
           >
             <Plus className="w-4 h-4" />
-            Add to Catalog
+            Add Items
           </button>
         </div>
       </div>
@@ -69,7 +112,6 @@ export function CatalogView({
                 </p>
                 <h4 className="font-bold text-zinc-900 text-sm leading-snug">{item.description}</h4>
               </div>
-              {/* Only delete on hover — clicking the card itself edits */}
               <button
                 onClick={(e) => { e.stopPropagation(); onRemoveFromCatalog(item.id); }}
                 className="p-1.5 text-zinc-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 rounded-lg hover:bg-red-50 flex-shrink-0"
@@ -92,6 +134,7 @@ export function CatalogView({
           <div className="col-span-full py-20 text-center bg-white border border-dashed border-zinc-200 rounded-2xl">
             <Book className="w-12 h-12 text-zinc-200 mx-auto mb-4" />
             <p className="text-zinc-400 text-sm font-medium">Your catalog is empty.</p>
+            <p className="text-zinc-300 text-xs mt-1">Add items or import a catalog JSON file.</p>
           </div>
         )}
       </div>

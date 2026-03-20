@@ -1,7 +1,6 @@
 import React, { useRef } from 'react';
-import { Plus, Copy, Download, Layout } from 'lucide-react';
-// Plus is still used for Add Section + empty state
-import { Project, CostItem } from './index';
+import { Plus, Copy, Download, Upload, Layout } from 'lucide-react';
+import { Project, CostItem, Section } from './index';
 import { ItemTable } from './ItemTable';
 import { exportToCSV } from './helpers';
 
@@ -20,6 +19,7 @@ interface SectionsManagerProps {
   onMoveSection: (direction: 'up' | 'down', sectionId: string) => void;
   onRemoveSection: (sectionId: string) => void;
   onUpdateSubject: (subject: string) => void;
+  onImportCSV: (file: File) => void;
 }
 
 export function SectionsManager({
@@ -33,8 +33,10 @@ export function SectionsManager({
   onMoveSection,
   onRemoveSection,
   onUpdateSubject,
+  onImportCSV,
 }: SectionsManagerProps) {
-  const tableRef = useRef<HTMLTableElement>(null);
+  const tableRef    = useRef<HTMLTableElement>(null);
+  const csvInputRef = useRef<HTMLInputElement>(null);
 
   const copyForWord = () => {
     if (!tableRef.current) return;
@@ -42,12 +44,14 @@ export function SectionsManager({
     range.selectNode(tableRef.current);
     window.getSelection()?.removeAllRanges();
     window.getSelection()?.addRange(range);
-    try {
-      document.execCommand('copy');
-    } catch {
-      // silent fail
-    }
+    try { document.execCommand('copy'); } catch { /* silent */ }
     window.getSelection()?.removeAllRanges();
+  };
+
+  const handleCSVImportChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) onImportCSV(file);
+    e.target.value = '';
   };
 
   const hasSections = (project.sections?.length ?? 0) > 0;
@@ -59,27 +63,46 @@ export function SectionsManager({
           <Layout className="w-8 h-8 text-emerald-600" />
         </div>
         <h3 className="text-xl font-bold text-zinc-900 mb-2">No Sections Yet</h3>
-        <button
-          onClick={onAddSection}
-          className="flex items-center gap-2 bg-emerald-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-all"
-        >
-          <Plus className="w-4 h-4" />
-          Create a Section
-        </button>
+        <p className="text-zinc-500 max-w-sm mx-auto mb-8">
+          Create sections to organize your project estimate items.
+        </p>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onAddSection}
+            className="flex items-center gap-2 bg-emerald-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            Create First Section
+          </button>
+          <input
+            ref={csvInputRef}
+            type="file"
+            accept=".csv"
+            onChange={handleCSVImportChange}
+            className="hidden"
+          />
+          <button
+            onClick={() => csvInputRef.current?.click()}
+            className="flex items-center gap-2 text-sm font-semibold text-zinc-600 hover:text-emerald-600 bg-white border border-zinc-200 px-4 py-2.5 rounded-xl transition-all"
+          >
+            <Upload className="w-4 h-4" />
+            Import CSV
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      {/* Actions bar — always visible when sections exist */}
+      {/* Actions bar */}
       <div className="flex items-center justify-between">
         <input
           type="text"
           value={project.subject}
           onChange={(e) => onUpdateSubject(e.target.value)}
           className="bg-transparent border-none p-0 focus:ring-0 font-bold text-lg text-zinc-900 w-64"
-          placeholder="Enter subject here"
+          placeholder="Estimate Itsems"
         />
         <div className="flex items-center gap-2">
           <button
@@ -96,6 +119,24 @@ export function SectionsManager({
             <Copy className="w-3.5 h-3.5" />
             Copy for Word
           </button>
+
+          {/* Import CSV */}
+          <input
+            ref={csvInputRef}
+            type="file"
+            accept=".csv"
+            onChange={handleCSVImportChange}
+            className="hidden"
+          />
+          <button
+            onClick={() => csvInputRef.current?.click()}
+            className="flex items-center gap-2 text-xs font-semibold text-zinc-600 hover:text-emerald-600 transition-colors bg-white border border-zinc-200 px-3 py-1.5 rounded-lg"
+          >
+            <Upload className="w-3.5 h-3.5" />
+            Import CSV
+          </button>
+
+          {/* Export CSV */}
           <button
             onClick={() => exportToCSV(project)}
             className="flex items-center gap-2 text-xs font-semibold text-zinc-600 hover:text-emerald-600 transition-colors bg-white border border-zinc-200 px-3 py-1.5 rounded-lg"

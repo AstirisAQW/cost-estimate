@@ -12,11 +12,12 @@ import { AddSectionItemModal } from './AddSectionItemModal';
 import { ProjectFormModal, NewProjectState } from './ProjectFormModal';
 
 import { useAppStorage } from './useLocalStorage';
-import { Project, CostItem, CatalogItem } from './index';
+import { Project, CostItem, CatalogItem, Section } from './index';
+import { exportCatalog, parseCatalogImport, importFromCSV } from './helpers';
 
 const EMPTY_PROJECT: NewProjectState = {
   name: '',
-  subject: '',
+  subject: 'Estimate Items',
   location: { street: '', barangay: '', city: '', province: '', postalCode: '' },
   owner: '',
 };
@@ -39,9 +40,10 @@ export default function App() {
   const [newSectionTitle,        setNewSectionTitle]        = useState('');
   const [newProject,             setNewProject]             = useState<NewProjectState>(EMPTY_PROJECT);
   const [confirmDeleteProjectId, setConfirmDeleteProjectId] = useState<string | null>(null);
+  const [importError,            setImportError]            = useState<string | null>(null);
 
-  // The item being edited in the section item modal — null = add mode
   const [editingItem, setEditingItem] = useState<CostItem | null>(null);
+  const _pendingCatalogEdit = React.useRef<CatalogItem | null>(null);
 
   // ── Derived active project ────────────────────────────────
   const activeProject = projects.find((p) => p.id === activeProjectId);
@@ -57,7 +59,7 @@ export default function App() {
     const project: Project = {
       id: Math.random().toString(36).substr(2, 9),
       name: newProject.name,
-      subject: newProject.subject || 'Cost Estimate',
+      subject: newProject.subject || 'Estimate Items',
       location: { ...newProject.location },
       owner: newProject.owner,
       date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
@@ -87,7 +89,7 @@ export default function App() {
   // ── Section CRUD ──────────────────────────────────────────
   const addSection = () => {
     if (!newSectionTitle || !activeProjectId) return;
-    const newSection = {
+    const newSection: Section = {
       id: Math.random().toString(36).substr(2, 9),
       title: newSectionTitle,
       items: [],
@@ -144,8 +146,6 @@ export default function App() {
   };
 
   // ── Section items ─────────────────────────────────────────
-
-  // Batch add new items to the active section
   const addItemsToSection = (newItems: Omit<CostItem, 'id'>[]) => {
     if (!activeProjectId || !activeSectionId) return;
     const itemsWithIds: CostItem[] = newItems.map((item) => ({
@@ -162,7 +162,6 @@ export default function App() {
     ));
   };
 
-  // Update a single existing item in place
   const updateSectionItem = (itemId: string, updates: Omit<CostItem, 'id'>) => {
     setProjects(projects.map((p) =>
       p.id !== activeProjectId ? p : {
@@ -177,14 +176,12 @@ export default function App() {
     ));
   };
 
-  // Open modal in edit mode with the item pre-loaded
   const openEditItem = (item: CostItem, sectionId: string) => {
     setActiveSectionId(sectionId);
     setEditingItem(item);
     setShowSectionItemForm(true);
   };
 
-  // Open modal in add mode
   const openAddItems = (sectionId: string) => {
     setActiveSectionId(sectionId);
     setEditingItem(null);
@@ -206,6 +203,40 @@ export default function App() {
         })),
       },
     ));
+  };
+
+  // ── CSV import ────────────────────────────────────────────
+  const handleImportCSV = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const text = e.target?.result as string;
+        const parsedSections = importFromCSV(text);
+        if (parsedSections.length === 0) {
+          setImportError('No valid item rows found in the CSV file.');
+          return;
+        }
+        // Append parsed sections (with fresh IDs) to the active project
+        const sectionsWithIds: Section[] = parsedSections.map((s) => ({
+          id: Math.random().toString(36).substr(2, 9),
+          title: s.title,
+          items: s.items,
+          laborCost: 0,
+          equipmentCost: 0,
+          indirectCost: 0,
+        }));
+        setProjects(projects.map((p) =>
+          p.id !== activeProjectId ? p : {
+            ...p,
+            sections: [...(p.sections ?? []), ...sectionsWithIds],
+          },
+        ));
+        if (sectionsWithIds[0]) setActiveSectionId(sectionsWithIds[0].id);
+      } catch {
+        setImportError('Failed to parse the CSV file.');
+      }
+    };
+    reader.readAsText(file);
   };
 
   // ── Catalog ───────────────────────────────────────────────
@@ -235,17 +266,31 @@ export default function App() {
     });
   };
 
-  const handleEditCatalogItemFromView = (item: CatalogItem) => {
-    setShowCatalogForm(true);
-    // ItemFormModal reads editingCatalogItem via its own internal state triggered by the left panel
-    // We open the modal and let the user click the item in the left panel to edit it
-    // For direct edit from CatalogView we pass it as a pre-load signal via a key trick:
-    // simplest: store on a ref and pass as initialEditItem prop
-    _pendingCatalogEdit.current = item;
+  // ── Catalog import ────────────────────────────────────────
+  const handleImportCatalog = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const text = e.target?.result as string;
+        const importedItems = parseCatalogImport(text);
+        if (importedItems.length === 0) {
+          setImportError('No valid items found in the catalog file.');
+          return;
+        }
+        // Merge: skip duplicates by description+unit match
+        setCatalog((prev) => {
+          const existingKeys = new Set(prev.map((c) => `${c.description}|${c.unit}`));
+          const newItems = importedItems.filter(
+            (i) => !existingKeys.has(`${i.description}|${i.unit}`),
+          );
+          return [...prev, ...newItems];
+        });
+      } catch {
+        setImportError('Failed to parse the catalog file.');
+      }
+    };
+    reader.readAsText(file);
   };
-
-  // Ref to carry a pending catalog edit from CatalogView into ItemFormModal on open
-  const _pendingCatalogEdit = React.useRef<CatalogItem | null>(null);
 
   // ── Render ────────────────────────────────────────────────
   return (
@@ -278,6 +323,8 @@ export default function App() {
                 setShowCatalogForm(true);
               }}
               onRemoveFromCatalog={(id) => setCatalog(catalog.filter((item) => item.id !== id))}
+              onExportCatalog={() => exportCatalog(catalog)}
+              onImportCatalog={handleImportCatalog}
             />
           ) : activeProject ? (
             <div className="max-w-6xl mx-auto">
@@ -297,6 +344,7 @@ export default function App() {
                 onMoveSection={moveSection}
                 onRemoveSection={removeSection}
                 onUpdateSubject={(subject) => updateActiveProject({ subject })}
+                onImportCSV={handleImportCSV}
               />
             </div>
           ) : (
@@ -329,7 +377,6 @@ export default function App() {
         onClose={() => setShowSectionForm(false)}
       />
 
-      {/* Add items to section (batch) or edit a single item */}
       <AddSectionItemModal
         show={showSectionItemForm}
         catalog={catalog}
@@ -341,7 +388,6 @@ export default function App() {
         onClose={closeSectionItemForm}
       />
 
-      {/* Add / edit catalog entries */}
       <ItemFormModal
         show={showCatalogForm}
         catalog={catalog}
@@ -399,6 +445,20 @@ export default function App() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ── Import Error Toast ── */}
+      {importError && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-red-600 text-white px-6 py-3 rounded-2xl shadow-xl flex items-center gap-3 max-w-md">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          <p className="text-sm font-medium">{importError}</p>
+          <button
+            onClick={() => setImportError(null)}
+            className="ml-2 text-red-200 hover:text-white font-bold text-xs"
+          >
+            ✕
+          </button>
         </div>
       )}
     </div>
