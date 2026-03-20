@@ -1,3 +1,5 @@
+import React from 'react';
+
 // ── Numeric key guards ────────────────────────────────────
 // Allow: digits, control keys, and Ctrl/Cmd+A / Ctrl/Cmd+C / Ctrl/Cmd+V
 

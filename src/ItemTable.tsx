@@ -25,7 +25,7 @@ const integerOnly = (e: React.KeyboardEvent<HTMLInputElement>) => {
 
 interface ItemTableProps {
   project: Project;
-  tableRef: React.RefObject<HTMLTableElement>;
+  tableRef?: React.RefObject<HTMLTableElement>;
   onEditItem: (item: CostItem, sectionId: string) => void;
   onRemoveItem: (itemId: string) => void;
   onAddItemToSection: (sectionId: string) => void;
