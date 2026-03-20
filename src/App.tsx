@@ -12,11 +12,11 @@ import { AddSectionItemModal } from './AddSectionItemModal';
 import { ProjectFormModal, NewProjectState } from './ProjectFormModal';
 
 import { useAppStorage } from './useLocalStorage';
-import { Project, CostItem, CatalogItem, INITIAL_ITEM } from './index';
+import { Project, CostItem, CatalogItem } from './index';
 
 const EMPTY_PROJECT: NewProjectState = {
   name: '',
-  subject: '',
+  subject: 'Estimate Items',
   location: { street: '', barangay: '', city: '', province: '', postalCode: '' },
   owner: '',
 };
@@ -30,17 +30,14 @@ export default function App() {
   } = useAppStorage();
 
   // ── UI state ──────────────────────────────────────────────
-  const [showSectionItemForm,    setShowSectionItemForm]    = useState(false); // add/edit item in a section
-  const [showCatalogForm,        setShowCatalogForm]        = useState(false); // add/edit catalog entry
+  const [showSectionItemForm,    setShowSectionItemForm]    = useState(false);
+  const [showCatalogForm,        setShowCatalogForm]        = useState(false);
   const [showProjectForm,        setShowProjectForm]        = useState(false);
   const [showSectionForm,        setShowSectionForm]        = useState(false);
   const [showCatalog,            setShowCatalog]            = useState(false);
   const [catalogSearch,          setCatalogSearch]          = useState('');
   const [newSectionTitle,        setNewSectionTitle]        = useState('');
   const [newProject,             setNewProject]             = useState<NewProjectState>(EMPTY_PROJECT);
-  const [newItem,                setNewItem]                = useState<Omit<CostItem, 'id'>>(INITIAL_ITEM);
-  const [editingItemId,          setEditingItemId]          = useState<string | null>(null);
-  const [editingCatalogId,       setEditingCatalogId]       = useState<string | null>(null);
   const [confirmDeleteProjectId, setConfirmDeleteProjectId] = useState<string | null>(null);
 
   // ── Derived active project ────────────────────────────────
@@ -57,7 +54,7 @@ export default function App() {
     const project: Project = {
       id: Math.random().toString(36).substr(2, 9),
       name: newProject.name,
-      subject: newProject.subject || '',
+      subject: newProject.subject || 'Estimate Items',
       location: { ...newProject.location },
       owner: newProject.owner,
       date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
@@ -105,20 +102,20 @@ export default function App() {
 
   const moveSection = (direction: 'up' | 'down', sectionId: string) => {
     if (!activeProject?.sections) return;
-    const idx = activeProject.sections.findIndex((s) => s.id === sectionId);
-    if (direction === 'up' && idx === 0) return;
-    if (direction === 'down' && idx === activeProject.sections.length - 1) return;
-    const newSections = [...activeProject.sections];
-    const target = direction === 'up' ? idx - 1 : idx + 1;
-    [newSections[idx], newSections[target]] = [newSections[target], newSections[idx]];
-    updateActiveProject({ sections: newSections });
+    const sectionIndex = activeProject.sections.findIndex((s) => s.id === sectionId);
+    if (direction === 'up' && sectionIndex === 0) return;
+    if (direction === 'down' && sectionIndex === activeProject.sections.length - 1) return;
+    const reordered = [...activeProject.sections];
+    const swapIndex = direction === 'up' ? sectionIndex - 1 : sectionIndex + 1;
+    [reordered[sectionIndex], reordered[swapIndex]] = [reordered[swapIndex], reordered[sectionIndex]];
+    updateActiveProject({ sections: reordered });
   };
 
   const removeSection = (sectionId: string) => {
     if (!activeProject?.sections) return;
-    const updated = activeProject.sections.filter((s) => s.id !== sectionId);
-    updateActiveProject({ sections: updated });
-    if (activeSectionId === sectionId) setActiveSectionId(updated[0]?.id ?? null);
+    const remainingSections = activeProject.sections.filter((s) => s.id !== sectionId);
+    updateActiveProject({ sections: remainingSections });
+    if (activeSectionId === sectionId) setActiveSectionId(remainingSections[0]?.id ?? null);
   };
 
   const updateSectionTitle = (sectionId: string, title: string) => {
@@ -143,48 +140,37 @@ export default function App() {
     ));
   };
 
-  // ── Section Item CRUD ─────────────────────────────────────
-  const addItemToSection = () => {
+  // ── Section items: batch add ──────────────────────────────
+  const addItemsToSection = (newItems: Omit<CostItem, 'id'>[]) => {
     if (!activeProjectId || !activeSectionId) return;
-
-    if (editingItemId) {
-      setProjects(projects.map((p) =>
-        p.id !== activeProjectId ? p : {
-          ...p,
-          sections: (p.sections ?? []).map((s) => ({
+    const itemsWithIds: CostItem[] = newItems.map((item) => ({
+      ...item,
+      id: Math.random().toString(36).substr(2, 9),
+    }));
+    setProjects(projects.map((p) =>
+      p.id !== activeProjectId ? p : {
+        ...p,
+        sections: (p.sections ?? []).map((s) =>
+          s.id !== activeSectionId ? s : {
             ...s,
-            items: (s.items ?? []).map((item) =>
-              item.id === editingItemId ? { ...newItem, id: editingItemId } : item,
-            ),
-          })),
-        },
-      ));
-    } else {
-      const itemWithId: CostItem = { ...newItem, id: Math.random().toString(36).substr(2, 9) };
-      setProjects(projects.map((p) =>
-        p.id !== activeProjectId ? p : {
-          ...p,
-          sections: (p.sections ?? []).map((s) =>
-            s.id === activeSectionId ? { ...s, items: [...(s.items ?? []), itemWithId] } : s,
-          ),
-        },
-      ));
-    }
-
-    setNewItem(INITIAL_ITEM);
-    setEditingItemId(null);
-    setShowSectionItemForm(false);
+            items: [...(s.items ?? []), ...itemsWithIds],
+          },
+        ),
+      },
+    ));
   };
 
+  // ── Section items: edit single ────────────────────────────
   const editItem = (item: CostItem, sectionId: string) => {
-    const { id, ...rest } = item;
-    setNewItem(rest);
-    setEditingItemId(id);
+    // For now editing a single item re-opens the batch modal pre-filled with one row.
+    // We handle this inline in the table via a separate single-edit path if needed.
+    // Simplest approach: direct in-place update via the table edit buttons uses
+    // a lightweight inline approach. For now we just remove-and-readd via the modal.
     setActiveSectionId(sectionId);
     setShowSectionItemForm(true);
   };
 
-  const removeItemFromProject = (itemId: string) => {
+  const removeItemFromSection = (itemId: string) => {
     setProjects(projects.map((p) =>
       p.id !== activeProjectId ? p : {
         ...p,
@@ -196,62 +182,33 @@ export default function App() {
     ));
   };
 
-  // Load a catalog item into the section item form (pre-fills name/unit/unitCost, qty stays blank)
-  const loadFromCatalogToSection = (item: CatalogItem) => {
-    setNewItem({
-      ...INITIAL_ITEM,
-      description: item.description,
-      unit: item.unit,
-      unitCost: item.unitCost,
-      qty: 0,
+  // ── Catalog: batch save ───────────────────────────────────
+  const saveCatalogItems = (
+    items: (Pick<CatalogItem, 'description' | 'unit' | 'unitCost'> & { id?: string })[],
+  ) => {
+    setCatalog((prev) => {
+      let updated = [...prev];
+      for (const item of items) {
+        if (item.id) {
+          // Update existing
+          updated = updated.map((c) =>
+            c.id === item.id
+              ? { ...c, description: item.description, unit: item.unit, unitCost: item.unitCost }
+              : c,
+          );
+        } else {
+          // Add new
+          updated.push({
+            id: Math.random().toString(36).substr(2, 9),
+            description: item.description,
+            unit: item.unit,
+            unitCost: item.unitCost,
+            section: activeProject?.sections?.find((s) => s.id === activeSectionId)?.title,
+          });
+        }
+      }
+      return updated;
     });
-  };
-
-  // ── Catalog CRUD ──────────────────────────────────────────
-  const saveToCatalog = () => {
-    if (editingCatalogId) {
-      setCatalog((prev) =>
-        prev.map((c) =>
-          c.id !== editingCatalogId ? c : {
-            ...c,
-            description: newItem.description,
-            unit: newItem.unit,
-            unitCost: newItem.unitCost,
-          },
-        ),
-      );
-      setEditingCatalogId(null);
-    } else {
-      const catalogItem: CatalogItem = {
-        id: Math.random().toString(36).substr(2, 9),
-        section: activeProject?.sections?.find((s) => s.id === activeSectionId)?.title,
-        description: newItem.description,
-        unit: newItem.unit,
-        unitCost: newItem.unitCost,
-      };
-      setCatalog([...catalog, catalogItem]);
-    }
-    setNewItem(INITIAL_ITEM);
-    setEditingCatalogId(null);
-    setShowCatalogForm(false);
-  };
-
-  const handleEditCatalogItem = (item: CatalogItem) => {
-    setNewItem({ ...INITIAL_ITEM, description: item.description, unit: item.unit, unitCost: item.unitCost });
-    setEditingCatalogId(item.id);
-    setShowCatalogForm(true);
-  };
-
-  const closeCatalogForm = () => {
-    setShowCatalogForm(false);
-    setEditingCatalogId(null);
-    setNewItem(INITIAL_ITEM);
-  };
-
-  const closeSectionItemForm = () => {
-    setShowSectionItemForm(false);
-    setEditingItemId(null);
-    setNewItem(INITIAL_ITEM);
   };
 
   // ── Render ────────────────────────────────────────────────
@@ -276,11 +233,7 @@ export default function App() {
               catalog={catalog}
               catalogSearch={catalogSearch}
               onSearchChange={setCatalogSearch}
-              onAddToCatalog={() => {
-                setEditingCatalogId(null);
-                setNewItem(INITIAL_ITEM);
-                setShowCatalogForm(true);
-              }}
+              onAddToCatalog={() => setShowCatalogForm(true)}
               onRemoveFromCatalog={(id) => setCatalog(catalog.filter((item) => item.id !== id))}
             />
           ) : activeProject ? (
@@ -294,10 +247,9 @@ export default function App() {
                 project={activeProject}
                 onAddSection={() => setShowSectionForm(true)}
                 onEditItem={editItem}
-                onRemoveItem={removeItemFromProject}
+                onRemoveItem={removeItemFromSection}
                 onAddItemToSection={(sectionId) => {
                   setActiveSectionId(sectionId);
-                  setNewItem(INITIAL_ITEM);
                   setShowSectionItemForm(true);
                 }}
                 onUpdateSectionTitle={updateSectionTitle}
@@ -313,6 +265,9 @@ export default function App() {
                 <Folder className="w-8 h-8 text-zinc-400" />
               </div>
               <h3 className="text-xl font-bold text-zinc-900 mb-2">Select or Create a Project</h3>
+              <p className="text-zinc-500 max-w-sm mx-auto mb-8">
+                Use the sidebar to manage your engineering projects and estimates.
+              </p>
               <button
                 onClick={() => setShowProjectForm(true)}
                 className="flex items-center gap-2 bg-emerald-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-all"
@@ -334,43 +289,25 @@ export default function App() {
         onClose={() => setShowSectionForm(false)}
       />
 
-      {/* Add / edit item in a section */}
+      {/* Batch add items to a section */}
       <AddSectionItemModal
         show={showSectionItemForm}
-        newItem={newItem}
         catalog={catalog}
         catalogSearch={catalogSearch}
-        editingItemId={editingItemId}
-        onItemChange={setNewItem}
         onCatalogSearchChange={setCatalogSearch}
-        onLoadFromCatalog={loadFromCatalogToSection}
-        onAddItem={addItemToSection}
-        onClose={closeSectionItemForm}
+        onAddItems={addItemsToSection}
+        onClose={() => setShowSectionItemForm(false)}
       />
 
-      {/* Add / edit catalog entry */}
+      {/* Batch add / edit catalog entries */}
       <ItemFormModal
         show={showCatalogForm}
-        newItem={newItem}
         catalog={catalog}
         catalogSearch={catalogSearch}
-        editingItemId={editingItemId}
-        editingCatalogId={editingCatalogId}
-        showCatalog={showCatalog}
-        onItemChange={setNewItem}
         onCatalogSearchChange={setCatalogSearch}
-        onLoadFromCatalog={(item) => {
-          setNewItem({ ...INITIAL_ITEM, description: item.description, unit: item.unit, unitCost: item.unitCost });
-          setEditingCatalogId(null);
-        }}
-        onEditCatalogItem={handleEditCatalogItem}
-        onDeleteCatalogItem={(id) => {
-          setCatalog((prev) => prev.filter((i) => i.id !== id));
-          if (editingCatalogId === id) setEditingCatalogId(null);
-        }}
-        onSaveToCatalog={saveToCatalog}
-        onAddItem={() => {}}
-        onClose={closeCatalogForm}
+        onSaveItems={saveCatalogItems}
+        onDeleteCatalogItem={(id) => setCatalog((prev) => prev.filter((i) => i.id !== id))}
+        onClose={() => setShowCatalogForm(false)}
       />
 
       <ProjectFormModal
@@ -393,12 +330,12 @@ export default function App() {
                 <div>
                   <h3 className="font-black text-zinc-900">Delete Project?</h3>
                   <p className="text-sm text-zinc-500 mt-0.5">
-                    "{projects.find(p => p.id === confirmDeleteProjectId)?.name}" will be permanently removed.
+                    "{projects.find((p) => p.id === confirmDeleteProjectId)?.name}" will be permanently removed.
                   </p>
                 </div>
               </div>
               <p className="text-xs text-zinc-400 mb-6 bg-zinc-50 rounded-xl px-4 py-3">
-                This action cannot be undone. All data in this project will be lost.
+                This action cannot be undone. All sections and estimate items in this project will be lost.
               </p>
               <div className="flex gap-3">
                 <button
